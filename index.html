@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr. Rocha’s English Class: Weather Pre-A1</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Results -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Nunito', 'sans-serif'] },
+                    colors: { primary: '#4f46e5', secondary: '#10b981' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { transition: background-color 0.3s, color 0.3s; }
+        .hide { display: none !important; }
+        .act-container { min-height: 60vh; }
+        
+        /* Memorama Styles */
+        .memory-card {
+            width: 100%; aspect-ratio: 1; perspective: 1000px; cursor: pointer;
+        }
+        .memory-card-inner {
+            width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0.5rem;
+        }
+        .memory-card.flipped .memory-card-inner { transform: rotateY(180deg); }
+        .memory-card-front, .memory-card-back {
+            width: 100%; height: 100%; position: absolute; backface-visibility: hidden;
+            display: flex; align-items: center; justify-content: center; border-radius: 0.5rem;
+            font-weight: bold; font-size: 1.2rem;
+        }
+        .memory-card-front { background-color: #4f46e5; color: transparent; }
+        .memory-card-front::after { content: "?"; color: white; font-size: 2rem; }
+        .memory-card-back { background-color: white; color: #1f2937; transform: rotateY(180deg); text-align: center; border: 2px solid #4f46e5; }
+        .dark .memory-card-back { background-color: #374151; color: white; border-color: #6366f1; }
+
+        /* Scrambled Image Grid */
+        #scrambled-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr);
+            width: 300px; height: 300px; gap: 2px; border: 2px solid #ccc; background: #eee;
+        }
+        .puzzle-piece {
+            width: 100%; height: 100%; background-image: url('image2.jpg');
+            background-size: 400% 400%; cursor: grab; user-select: none;
+        }
+        .puzzle-piece:active { cursor: grabbing; }
+
+        /* Canvas */
+        #trace-canvas { border: 2px dashed #cbd5e1; background-color: #f8fafc; border-radius: 0.5rem; cursor: crosshair; }
+        .dark #trace-canvas { border-color: #475569; background-color: #1e293b; }
+
+        /* General UI */
+        .btn { padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 600; transition: all 0.2s; text-align: center; cursor: pointer; display: inline-block; }
+        .btn-blue { background-color: #3b82f6; color: white; }
+        .btn-blue:hover { background-color: #2563eb; }
+        .btn-green { background-color: #10b981; color: white; }
+        .btn-green:hover { background-color: #059669; }
+        .btn-gray { background-color: #6b7280; color: white; }
+        .btn-gray:hover { background-color: #4b5563; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin-bottom: 1rem; }
+        .progress-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans dark:bg-gray-900 dark:text-gray-100 antialiased">
+
+<div class="max-w-4xl mx-auto p-4 md:p-6">
+    
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex-1">
+            <h1 class="text-2xl md:text-3xl font-bold text-primary dark:text-indigo-400">Mr. Rocha’s English Class</h1>
+            <h2 class="text-xl text-gray-600 dark:text-gray-300">Weather Pre-A1</h2>
+        </div>
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+            <input type="text" id="studentName" placeholder="Type your Name" class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 w-full">
+            <input type="date" id="activityDate" class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 w-full cursor-pointer">
+        </div>
+        <button onclick="toggleDarkMode()" class="btn btn-gray rounded-full w-12 h-12 flex items-center justify-center"><i class="fas fa-moon"></i></button>
+    </header>
+
+    <!-- Progress -->
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <p class="text-sm text-right text-gray-500 dark:text-gray-400 mb-6"><span id="progressText">0</span> / 12 Activities Completed</p>
+
+    <!-- Main Content Area -->
+    <main class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 act-container relative">
+        
+        <!-- Intro Section (Section 0) -->
+        <section id="sec-0" class="activity-section">
+            <h3 class="text-2xl font-bold mb-4">Welcome to Class!</h3>
+            <p class="mb-4">Please watch the video and look at the image before starting.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="rounded-lg overflow-hidden border">
+                    <img src="image1.jpg" alt="Weather Intro" class="w-full h-auto object-cover max-h-80" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%25\' height=\'200\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'%23e2e8f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'20\' fill=\'%2364748b\'%3Eimage1.jpg%3C/text%3E%3C/svg%3E'">
+                </div>
+                <div class="rounded-lg overflow-hidden border bg-black flex items-center justify-center">
+                    <video src="video1.mp4" controls class="w-full h-auto max-h-80">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+            <div class="text-center">
+                <button onclick="nav(1)" class="btn btn-blue text-lg">Start Activity 1 <i class="fas fa-arrow-right ml-2"></i></button>
+            </div>
+        </section>
+
+        <!-- Activity 1 -->
+        <section id="sec-1" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 1: Vocabulary Review</h3>
+            <p class="mb-4">Look at the image, listen, and repeat each vocabulary word. Then grade how well you did.</p>
+            <div class="flex justify-center mb-4">
+                <img src="image1a.jpg" alt="Vocabulary" class="max-w-full h-auto rounded border" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'%23e2e8f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\'%3Eimage1a.jpg%3C/text%3E%3C/svg%3E'">
+            </div>
+            <div class="flex flex-wrap gap-2 justify-center mb-6" id="act1-words">
+                <!-- Words injected by JS -->
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg flex items-center gap-4 mb-4">
+                <label for="act1-grade" class="font-semibold">How well did you repeat the words? (Grade 1-10):</label>
+                <select id="act1-grade" class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                    <option value="" disabled selected>Select Grade</option>
+                    <option value="1">1 (Needs Work)</option>
+                    <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                    <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="10">10 (Excellent)</option>
+                </select>
+            </div>
+            <div id="act1-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct1()" class="btn btn-green w-full" id="btn-check-1">Check Answer</button>
+        </section>
+
+        <!-- Activity 2 -->
+        <section id="sec-2" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 2: Image Naming</h3>
+            <p class="mb-4">Type the correct word for each image. (16 images total)</p>
+            <div class="text-center mb-2 font-semibold">Image <span id="act2-counter">1</span> of 16</div>
+            <div class="flex justify-center items-center gap-4 mb-6">
+                <button onclick="act2Prev()" class="btn btn-gray"><i class="fas fa-chevron-left"></i></button>
+                <div class="w-64 h-64 border rounded flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                    <img id="act2-img" src="" alt="Weather" class="max-w-full max-h-full object-contain">
+                </div>
+                <button onclick="act2Next()" class="btn btn-gray"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="flex flex-col items-center gap-4 mb-4">
+                <div class="flex gap-2 items-center">
+                    <input type="text" id="act2-input" placeholder="Type word here..." class="p-3 border rounded text-center w-64 text-lg dark:bg-gray-700" oninput="saveAct2Input()">
+                    <button onclick="checkAct2Word()" class="btn btn-blue text-sm">Check Spelling</button>
+                </div>
+                <div id="act2-word-feedback" class="h-6 font-bold"></div>
+                <div id="act2-feedback" class="font-bold hidden"></div>
+            </div>
+            <button onclick="checkAct2()" class="btn btn-green w-full" id="btn-check-2">Check All Words</button>
+        </section>
+
+        <!-- Activity 3 -->
+        <section id="sec-3" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 3: Memorama</h3>
+            <p class="mb-4">Find the matching pairs of words.</p>
+            <div class="flex justify-between items-center mb-2">
+                <span>Matches: <span id="act3-matches">0</span> / 6</span>
+                <span>Moves: <span id="act3-moves">0</span></span>
+            </div>
+            <div id="act3-grid" class="grid grid-cols-3 md:grid-cols-4 gap-4 mb-6">
+                <!-- Cards injected here -->
+            </div>
+            <div id="act3-feedback" class="mb-4 font-bold text-center hidden"></div>
+            <button onclick="checkAct3()" class="btn btn-green w-full" id="btn-check-3">Check Activity</button>
+        </section>
+
+        <!-- Activity 4 -->
+        <section id="sec-4" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 4: Reading Comprehension</h3>
+            <p class="mb-4">Read the text about Carlos and answer the questions.</p>
+            <div class="bg-yellow-50 dark:bg-gray-700 p-4 rounded border mb-6 text-lg leading-relaxed">
+                "Hello! My name is Carlos. I want to tell you about the weather in my town. Today, it is very <b>cold</b> and <b>rainy</b>. I am wearing a big jacket. I look out my window and I see a big <b>storm</b>. There is a lot of wind, so it is very <b>windy</b>. The trees are moving fast. Suddenly, I hear loud <b>thunder</b>! Boom! Then, I see a bright flash of <b>lightning</b> in the dark sky. I do not like the storm, but I like to stay inside where it is warm. Tomorrow, I hope the weather is better. I want to play outside. I hope it is sunny and not cold."
+            </div>
+            <div id="act4-questions" class="space-y-6 mb-6">
+                <!-- MCQs injected here -->
+            </div>
+            <div id="act4-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct4()" class="btn btn-green w-full" id="btn-check-4">Check Answers</button>
+        </section>
+
+        <!-- Activity 5 -->
+        <section id="sec-5" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 5: Conversation</h3>
+            <div class="flex justify-center mb-4">
+                <img src="image1a.jpg" alt="Conversation" class="h-32 object-contain rounded border" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'100\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'%23e2e8f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\'%3Eimage1a.jpg%3C/text%3E%3C/svg%3E'">
+            </div>
+            <p class="mb-4">Select the correct line for Carlos to complete the phone call with Jose Pablo.</p>
+            <button onclick="toggleAct5Conv()" class="btn btn-blue text-sm mb-4" id="act5-show-btn">Show Complete Conversation</button>
+            <div id="act5-full-conv" class="bg-gray-100 dark:bg-gray-700 p-4 rounded mb-4 hidden whitespace-pre-line text-sm border-l-4 border-blue-500"></div>
+            
+            <div id="act5-conversation" class="space-y-4 mb-6 bg-white dark:bg-gray-800 p-4 border rounded shadow-inner">
+                <!-- Lines injected here -->
+            </div>
+            <div id="act5-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct5()" class="btn btn-green w-full" id="btn-check-5">Check Answers</button>
+        </section>
+
+        <!-- Activity 6 -->
+        <section id="sec-6" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 6: Unscramble Words</h3>
+            <p class="mb-4">Order the letters to form correct weather words.</p>
+            <div class="text-center mb-4 text-gray-500">Word <span id="act6-counter">1</span> of 16</div>
+            <div class="flex flex-col items-center gap-6 mb-6 bg-gray-100 dark:bg-gray-700 p-8 rounded-xl border">
+                <div id="act6-letters" class="text-4xl font-mono tracking-widest text-primary dark:text-indigo-400 font-bold uppercase"></div>
+                <input type="text" id="act6-input" class="p-3 text-center text-xl w-64 border-b-2 border-primary bg-transparent focus:outline-none dark:text-white" placeholder="Type word">
+                <div class="flex gap-4">
+                    <button onclick="act6Prev()" class="btn btn-gray"><i class="fas fa-arrow-left"></i> Prev</button>
+                    <button onclick="act6Next()" class="btn btn-blue">Next <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+            <div id="act6-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct6()" class="btn btn-green w-full" id="btn-check-6">Check All Words</button>
+        </section>
+
+        <!-- Activity 7 -->
+        <section id="sec-7" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 7: Scrambled Image</h3>
+            <p class="mb-4">Drag and drop the pieces to form the correct image. Timer starts on first move!</p>
+            <div class="flex flex-col md:flex-row gap-8 justify-center items-center mb-6">
+                <div>
+                    <p class="text-center font-bold mb-2">Target Image</p>
+                    <img src="image2.jpg" class="w-48 h-48 border-2 shadow-sm" alt="Target" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'%23e2e8f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\'%3ESUN%3C/text%3E%3C/svg%3E'">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-red-500"><i class="fas fa-clock"></i> <span id="act7-timer">0</span>s</span>
+                        <button onclick="initAct7()" class="text-sm bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">Do Again <i class="fas fa-redo"></i></button>
+                    </div>
+                    <div id="scrambled-grid">
+                        <!-- Grid items injected here -->
+                    </div>
+                </div>
+            </div>
+            <div id="act7-feedback" class="mb-4 font-bold text-center hidden"></div>
+            <button onclick="checkAct7()" class="btn btn-green w-full" id="btn-check-7">Check Puzzle</button>
+        </section>
+
+        <!-- Activity 8 -->
+        <section id="sec-8" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 8: Scrambled Sentences</h3>
+            <p class="mb-4">Click the words in the correct order to form a sentence.</p>
+            <div id="act8-container" class="space-y-6 mb-6">
+                <!-- Sentences injected here -->
+            </div>
+            <div id="act8-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct8()" class="btn btn-green w-full" id="btn-check-8">Check Sentences</button>
+        </section>
+
+        <!-- Activity 9 -->
+        <section id="sec-9" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 9: Trace the Words</h3>
+            <p class="mb-4">Use your mouse or finger to trace the letters.</p>
+            <div class="flex flex-wrap gap-2 justify-center mb-4" id="act9-words">
+                <!-- Word buttons injected -->
+            </div>
+            <div class="flex justify-center flex-col items-center mb-6">
+                <canvas id="trace-canvas" width="600" height="200" class="max-w-full touch-none"></canvas>
+                <button onclick="clearCanvas()" class="mt-2 text-sm text-red-500 hover:text-red-700 underline">Clear Canvas</button>
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg flex items-center gap-4 mb-4">
+                <label class="font-semibold">Did you trace all the words?</label>
+                <select id="act9-self-check" class="p-2 border rounded dark:bg-gray-700 w-32">
+                    <option value="" disabled selected>Select</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+            <div id="act9-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct9()" class="btn btn-green w-full" id="btn-check-9">Complete Activity</button>
+        </section>
+
+        <!-- Activity 10 -->
+        <section id="sec-10" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 10: Color the Words</h3>
+            <p class="mb-4">Select a color from the palette, then click a square to color it according to the key.</p>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg text-sm font-semibold" id="act10-legend">
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-red-500 border"></span> find</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-blue-500 border"></span> may</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-green-500 border"></span> come</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-yellow-400 border"></span> who</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-orange-500 border"></span> over</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-purple-500 border"></span> new</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-pink-400 border"></span> take</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-[brown] border"></span> sound</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-black border"></span> the</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-white border border-gray-400"></span> I</div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 inline-block bg-gray-500 border"></span> we</div>
+            </div>
+
+            <div class="flex justify-center gap-2 mb-6" id="act10-palette">
+                <!-- Palette generated via JS -->
+            </div>
+
+            <div class="flex justify-center mb-6">
+                <div id="act10-grid" class="grid grid-cols-5 gap-1 border-2 border-gray-800 bg-gray-800 p-1 rounded">
+                    <!-- Grid items injected via JS -->
+                </div>
+            </div>
+            
+            <div id="act10-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct10()" class="btn btn-green w-full" id="btn-check-10">Check Colors</button>
+        </section>
+
+        <!-- Activity 11 -->
+        <section id="sec-11" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 11: Read the Sentences</h3>
+            <p class="mb-4">Read each sentence aloud. You can click the audio button to hear it.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6" id="act11-sentences">
+                <!-- Sentences injected -->
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg flex items-center gap-4 mb-4">
+                <label class="font-semibold">Did you read all sentences aloud?</label>
+                <select id="act11-self-check" class="p-2 border rounded dark:bg-gray-700 w-32">
+                    <option value="" disabled selected>Select</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+            <div id="act11-feedback" class="mb-4 font-bold hidden"></div>
+            <button onclick="checkAct11()" class="btn btn-green w-full" id="btn-check-11">Complete Activity</button>
+        </section>
+
+        <!-- Activity 12 -->
+        <section id="sec-12" class="activity-section hide">
+            <h3 class="text-xl font-bold mb-2">Activity 12: Spelling Bee</h3>
+            <p class="mb-4">Listen to the word and type it correctly. You have 35 seconds for the whole activity! (+10 pts correct, -10 pts incorrect)</p>
+            
+            <div class="flex justify-between items-center mb-4 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                <div class="font-bold text-xl">Score: <span id="act12-score" class="text-blue-500">0</span></div>
+                <div class="font-bold text-xl text-red-500"><i class="fas fa-stopwatch"></i> <span id="act12-timer">35</span>s</div>
+                <div>Word: <span id="act12-counter">1</span> / 10</div>
+            </div>
+
+            <div class="text-center mb-6" id="act12-play-area">
+                <div id="act12-display" class="text-xl md:text-2xl font-bold text-primary dark:text-indigo-400 mb-4 min-h-[2rem]"></div>
+                <button onclick="playAct12Word()" class="btn btn-blue rounded-full w-16 h-16 text-2xl mb-4" id="act12-btn-play"><i class="fas fa-volume-up"></i></button>
+                <br>
+                <input type="text" id="act12-input" class="p-3 border rounded text-center text-xl w-64 dark:bg-gray-700 mb-4" placeholder="Type word here">
+                <br>
+                <button onclick="submitAct12Word()" class="btn btn-green px-8" id="act12-btn-submit">Submit Word</button>
+            </div>
+
+            <div id="act12-results-area" class="hidden">
+                <h4 class="font-bold text-lg mb-2 text-center border-b pb-2">Results (Correct Spellings)</h4>
+                <ul id="act12-word-list" class="grid grid-cols-2 gap-2 text-sm max-w-md mx-auto"></ul>
+            </div>
+
+            <div id="act12-feedback" class="mb-4 font-bold text-center mt-4 hidden"></div>
+            <!-- Check button is automatic when timer ends or words finish, but keeping structure consistent -->
+            <button onclick="checkAct12()" class="btn btn-gray w-full mt-4 hidden" id="btn-check-12">Finish Spelling Bee</button>
+            <button onclick="startAct12()" class="btn btn-blue w-full" id="btn-start-12">Start Spelling Bee</button>
+        </section>
+
+        <!-- Final Results -->
+        <section id="sec-13" class="activity-section hide">
+            <h2 class="text-3xl font-bold mb-6 text-center text-primary dark:text-indigo-400">Class Results</h2>
+            <div class="bg-gray-100 dark:bg-gray-700 p-6 rounded-xl shadow-inner mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-center md:text-left">
+                    <p class="text-lg">Student: <strong id="res-name" class="text-blue-600 dark:text-blue-400"></strong></p>
+                    <p class="text-lg">Date: <strong id="res-date"></strong></p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400">Overall Score</p>
+                    <p class="text-5xl font-extrabold text-green-500" id="res-score">0%</p>
+                </div>
+            </div>
+
+            <div class="mb-8 w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
+                <canvas id="resultsChart"></canvas>
+            </div>
+
+            <h3 class="text-xl font-bold mb-4 border-b pb-2">Activity Breakdown & Feedback</h3>
+            <div id="res-breakdown" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-sm">
+                <!-- Breakdown injected -->
+            </div>
+
+            <h3 class="text-xl font-bold mb-4 border-b pb-2 text-purple-600 dark:text-purple-400"><i class="fas fa-lightbulb"></i> 8 Recommendations</h3>
+            <ul id="res-recommendations" class="space-y-3 list-disc pl-5 bg-purple-50 dark:bg-gray-800 p-6 rounded-lg shadow border border-purple-100 dark:border-gray-600">
+                <!-- Recommendations injected -->
+            </ul>
+        </section>
+
+        <!-- Navigation Controls -->
+        <div class="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center" id="nav-controls">
+            <button id="btn-prev" onclick="nav(-1)" class="btn btn-gray hidden"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+            <div class="flex-1"></div>
+            <button id="btn-next" onclick="nav(1)" class="btn btn-blue hide">Next <i class="fas fa-arrow-right ml-2"></i></button>
+            <button id="btn-submit" onclick="showResults()" class="btn btn-purple bg-purple-600 hover:bg-purple-700 text-white font-bold ml-2 hidden"><i class="fas fa-flag-checkered mr-2"></i> Submit Class & Check Results</button>
+        </div>
+    </main>
+</div>
+
+<script>
+    // --- Global State ---
+    const TOTAL_ACTIVITIES = 12;
+    let currentSection = 0;
+    let scores = {}; // actIndex -> score (0-100)
+    let completed = {}; // actIndex -> boolean
+
+    // TTS Helper
+    function speak(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.8; // slightly slower for Pre-A1
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Navigation Logic
+    function nav(direction) {
+        if(direction === 1) currentSection++;
+        else if(direction === -1) currentSection--;
+        else currentSection = direction; // direct jump
+        
+        showSection(currentSection);
+    }
+
+    function showSection(idx) {
+        document.querySelectorAll('.activity-section').forEach(sec => sec.classList.add('hide'));
+        document.getElementById(`sec-${idx}`).classList.remove('hide');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Nav Buttons
+        document.getElementById('btn-prev').classList.toggle('hidden', idx === 0 || idx === 13);
+        
+        let nextBtn = document.getElementById('btn-next');
+        let submitBtn = document.getElementById('btn-submit');
+
+        if (idx === 13) {
+            nextBtn.classList.add('hide');
+            submitBtn.classList.add('hidden');
+            document.getElementById('btn-prev').classList.add('hidden');
+        } else if (idx === 12) {
+            nextBtn.classList.add('hide');
+            submitBtn.classList.remove('hidden');
+        } else {
+            nextBtn.classList.remove('hide');
+            submitBtn.classList.add('hidden');
+        }
+    }
+
+    function toggleDarkMode() {
+        document.documentElement.classList.toggle('dark');
+    }
+
+    function markCompleted(actIndex, scorePercentage) {
+        scores[actIndex] = scorePercentage;
+        completed[actIndex] = true;
+        document.getElementById(`btn-check-${actIndex}`).disabled = true;
+        document.getElementById(`btn-check-${actIndex}`).innerText = "Checked";
+        updateProgress();
+    }
+
+    function updateProgress() {
+        let count = Object.keys(completed).length;
+        document.getElementById('progressText').innerText = count;
+        document.getElementById('progressFill').style.width = `${(count / TOTAL_ACTIVITIES) * 100}%`;
+    }
+
+    function showFeedback(actIndex, isPerfect, text) {
+        let el = document.getElementById(`act${actIndex}-feedback`);
+        el.classList.remove('hidden', 'text-green-600', 'text-red-600', 'dark:text-green-400', 'dark:text-red-400');
+        el.classList.add(isPerfect ? 'text-green-600' : 'text-red-600');
+        el.classList.add(isPerfect ? 'dark:text-green-400' : 'dark:text-red-400');
+        el.innerText = text;
+    }
+
+    // --- Activity 1 ---
+    const act1Words = ['sun', 'rain', 'cloud', 'wind', 'snow', 'storm', 'fog', 'hot', 'cold', 'sunny', 'rainy', 'windy'];
+    function initAct1() {
+        let container = document.getElementById('act1-words');
+        act1Words.forEach(w => {
+            let btn = document.createElement('button');
+            btn.className = "px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded shadow hover:bg-indigo-200 flex items-center gap-2";
+            btn.innerHTML = `<span>${w}</span> <i class="fas fa-volume-up text-sm"></i>`;
+            btn.onclick = () => speak(w);
+            container.appendChild(btn);
+        });
+    }
+    function checkAct1() {
+        let val = document.getElementById('act1-grade').value;
+        if(!val) { alert("Please select a grade."); return; }
+        document.getElementById('act1-grade').disabled = true;
+        let score = (parseInt(val) / 10) * 100;
+        markCompleted(1, score);
+        showFeedback(1, true, "Great job repeating the words! Score recorded.");
+    }
+
+    // --- Activity 2 ---
+    const act2Answers = ['sun', 'rain', 'cloud', 'wind', 'snow', 'storm', 'fog', 'hot', 'cold', 'sunny', 'rainy', 'windy', 'snowy', 'thunder', 'lightning', 'rainbow'];
+    let act2Index = 0;
+    let act2UserAnswers = new Array(16).fill("");
+    function updateAct2UI() {
+        document.getElementById('act2-counter').innerText = act2Index + 1;
+        document.getElementById('act2-img').src = `image${act2Index + 2}.jpg`;
+        document.getElementById('act2-img').onerror = function() {
+            this.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23e2e8f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2364748b'%3Eimage${act2Index + 2}.jpg%3C/text%3E%3C/svg%3E`;
+        };
+        document.getElementById('act2-input').value = act2UserAnswers[act2Index];
+        document.getElementById('act2-word-feedback').innerHTML = ''; // clear feedback on nav
+    }
+    function saveAct2Input() { act2UserAnswers[act2Index] = document.getElementById('act2-input').value.trim().toLowerCase(); }
+    function act2Prev() { if(act2Index > 0) { act2Index--; updateAct2UI(); } }
+    function act2Next() { if(act2Index < 15) { act2Index++; updateAct2UI(); } }
+    function checkAct2Word() {
+        let userVal = document.getElementById('act2-input').value.trim().toLowerCase();
+        let correctVal = act2Answers[act2Index];
+        let fb = document.getElementById('act2-word-feedback');
+        if (userVal === correctVal) {
+            fb.innerHTML = '<span class="text-green-500"><i class="fas fa-check"></i> Correct!</span>';
+        } else {
+            fb.innerHTML = '<span class="text-red-500"><i class="fas fa-times"></i> Check your spelling.</span>';
+        }
+    }
+    function checkAct2() {
+        let correct = 0;
+        act2Answers.forEach((ans, i) => { if(act2UserAnswers[i] === ans) correct++; });
+        let score = Math.round((correct / 16) * 100);
+        document.getElementById('act2-input').disabled = true;
+        markCompleted(2, score);
+        showFeedback(2, score > 70, `You got ${correct} out of 16 correct! (${score}%)`);
+    }
+
+    // --- Activity 3 (Memorama) ---
+    const act3WordsList = ['sun', 'rain', 'cloud', 'wind', 'snow', 'storm', 'fog', 'hot', 'cold', 'sunny', 'rainy', 'windy'];
+    let act3Cards = [], act3Flipped = [], act3Matches = 0, act3Moves = 0;
+    function initAct3() {
+        let words = [...act3WordsList.slice(0,6), ...act3WordsList.slice(0,6)]; // 12 cards, 6 pairs
+        words.sort(() => Math.random() - 0.5);
+        let grid = document.getElementById('act3-grid');
+        words.forEach((w, i) => {
+            let card = document.createElement('div');
+            card.className = 'memory-card';
+            card.dataset.word = w;
+            card.innerHTML = `<div class="memory-card-inner">
+                <div class="memory-card-front"></div>
+                <div class="memory-card-back">${w}</div>
+            </div>`;
+            card.onclick = () => flipAct3Card(card);
+            grid.appendChild(card);
+            act3Cards.push(card);
+        });
+    }
+    function flipAct3Card(card) {
+        if(completed[3] || card.classList.contains('flipped') || act3Flipped.length >= 2) return;
+        card.classList.add('flipped');
+        act3Flipped.push(card);
+        if(act3Flipped.length === 2) {
+            act3Moves++;
+            document.getElementById('act3-moves').innerText = act3Moves;
+            setTimeout(checkAct3Match, 800);
+        }
+    }
+    function checkAct3Match() {
+        if(act3Flipped[0].dataset.word === act3Flipped[1].dataset.word) {
+            act3Matches++;
+            document.getElementById('act3-matches').innerText = act3Matches;
+            act3Flipped[0].style.opacity = '0.7'; act3Flipped[1].style.opacity = '0.7';
+        } else {
+            act3Flipped[0].classList.remove('flipped'); act3Flipped[1].classList.remove('flipped');
+        }
+        act3Flipped = [];
+    }
+    function checkAct3() {
+        if(act3Matches < 6) {
+            alert("Please find all matches first, or check to submit current score.");
+        }
+        let score = Math.min(100, Math.round((act3Matches / 6) * 100));
+        markCompleted(3, score);
+        showFeedback(3, score===100, `Activity completed. Score: ${score}%`);
+    }
+
+    // --- Activity 4 ---
+    const act4Q = [
+        { q: "What is the boy's name?", opts: ["Carlos", "Jose", "William"], a: "Carlos" },
+        { q: "How is the weather today?", opts: ["Hot and sunny", "Cold and rainy", "Warm and windy"], a: "Cold and rainy" },
+        { q: "What is Carlos wearing?", opts: ["A big jacket", "A t-shirt", "A hat"], a: "A big jacket" },
+        { q: "What does he see out the window?", opts: ["A big storm", "A rainbow", "The sun"], a: "A big storm" },
+        { q: "How are the trees moving?", opts: ["Slow", "Not moving", "Fast"], a: "Fast" },
+        { q: "What loud sound does he hear?", opts: ["Rain", "Thunder", "Wind"], a: "Thunder" },
+        { q: "What does he see in the sky?", opts: ["Lightning", "Snow", "Fog"], a: "Lightning" },
+        { q: "Where does Carlos like to stay?", opts: ["Inside", "Outside", "In the car"], a: "Inside" }
+    ];
+    function initAct4() {
+        let container = document.getElementById('act4-questions');
+        act4Q.forEach((item, i) => {
+            let qDiv = document.createElement('div');
+            let optsHtml = [...item.opts].sort(() => Math.random() - 0.5).map(opt => `
+                <label class="block mt-2 cursor-pointer bg-white dark:bg-gray-800 p-2 rounded border hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <input type="radio" name="act4_q${i}" value="${opt}" class="mr-2"> ${opt}
+                </label>
+            `).join('');
+            qDiv.innerHTML = `<p class="font-bold">${i+1}. ${item.q}</p>${optsHtml}`;
+            container.appendChild(qDiv);
+        });
+    }
+    function checkAct4() {
+        let correct = 0;
+        act4Q.forEach((item, i) => {
+            let selected = document.querySelector(`input[name="act4_q${i}"]:checked`);
+            let labels = document.getElementsByName(`act4_q${i}`);
+            labels.forEach(radio => radio.disabled = true);
+            
+            if(selected && selected.value === item.a) {
+                correct++;
+                selected.parentElement.classList.add('bg-green-100', 'border-green-500', 'dark:bg-green-900');
+            } else if (selected) {
+                selected.parentElement.classList.add('bg-red-100', 'border-red-500', 'dark:bg-red-900');
+            }
+        });
+        let score = Math.round((correct / 8) * 100);
+        markCompleted(4, score);
+        showFeedback(4, score > 70, `You got ${correct} out of 8 correct! (${score}%)`);
+    }
+
+    // --- Activity 5 ---
+    const act5Conv = [
+        { p: "Jose Pablo", text: "Hello, Carlos! How are you?" },
+        { p: "Carlos", text: "I am good, but it is very cold today.", isDropdown: true },
+        { p: "Jose Pablo", text: "Yes, it is cold and windy here too." },
+        { p: "Carlos", text: "Is it rainy in your city?", isDropdown: true },
+        { p: "Jose Pablo", text: "No, it is not rainy. It is cloudy." },
+        { p: "Carlos", text: "I see a big storm coming.", isDropdown: true },
+        { p: "Jose Pablo", text: "Oh no! Is there thunder and lightning?" },
+        { p: "Carlos", text: "Yes! I just heard loud thunder.", isDropdown: true },
+        { p: "Jose Pablo", text: "You should stay inside the house." },
+        { p: "Carlos", text: "I will. I do not like the storm.", isDropdown: true },
+        { p: "Jose Pablo", text: "Me neither. I hope it is sunny tomorrow." },
+        { p: "Carlos", text: "Me too. Let's talk later.", isDropdown: true },
+        { p: "Jose Pablo", text: "Okay, goodbye Carlos!" }
+    ];
+    let act5Options = act5Conv.filter(l => l.isDropdown).map(l => l.text).sort(() => Math.random() - 0.5);
+    function initAct5() {
+        let container = document.getElementById('act5-conversation');
+        let fullText = "";
+        act5Conv.forEach((line, i) => {
+            fullText += `<b>${line.p}:</b> ${line.text}\n`;
+            if(line.isDropdown) {
+                let opts = `<option value="">-- Select Carlos's Line --</option>` + 
+                           act5Options.map(o => `<option value="${o.replace(/"/g, '&quot;')}">${o}</option>`).join('');
+                container.innerHTML += `<div class="ml-8"><select id="act5-sel-${i}" class="w-full p-2 border border-blue-300 rounded bg-blue-50 dark:bg-gray-700 text-sm mb-2">${opts}</select></div>`;
+            } else {
+                container.innerHTML += `<div class="mb-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border"><b class="text-green-600 dark:text-green-400">${line.p}:</b> ${line.text}</div>`;
+            }
+        });
+        document.getElementById('act5-full-conv').innerHTML = fullText;
+    }
+    function toggleAct5Conv() {
+        let el = document.getElementById('act5-full-conv');
+        let btn = document.getElementById('act5-show-btn');
+        if(el.classList.contains('hidden')) {
+            el.classList.remove('hidden'); btn.innerText = "Hide Complete Conversation";
+        } else {
+            el.classList.add('hidden'); btn.innerText = "Show Complete Conversation";
+        }
+    }
+    function checkAct5() {
+        let correct = 0, total = 0;
+        act5Conv.forEach((line, i) => {
+            if(line.isDropdown) {
+                total++;
+                let sel = document.getElementById(`act5-sel-${i}`);
+                sel.disabled = true;
+                if(sel.value === line.text) {
+                    correct++; sel.classList.add('border-green-500', 'bg-green-100');
+                } else {
+                    sel.classList.add('border-red-500', 'bg-red-100');
+                }
+            }
+        });
+        let score = Math.round((correct / total) * 100);
+        markCompleted(5, score);
+        showFeedback(5, score > 70, `Correct lines: ${correct}/${total}. Score: ${score}%`);
+    }
+
+    // --- Activity 6 ---
+    const act6Words = ['sun', 'rain', 'cloud', 'wind', 'snow', 'storm', 'fog', 'hot', 'cold', 'sunny', 'rainy', 'windy', 'snowy', 'thunder', 'lightning', 'rainbow'];
+    let act6Index = 0;
+    let act6Answers = new Array(16).fill("");
+    function scramble(word) {
+        let arr = word.split('');
+        for(let i = arr.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr.join(' ');
+    }
+    function updateAct6UI() {
+        document.getElementById('act6-counter').innerText = act6Index + 1;
+        document.getElementById('act6-letters').innerText = scramble(act6Words[act6Index]);
+        let input = document.getElementById('act6-input');
+        input.value = act6Answers[act6Index];
+        input.oninput = () => act6Answers[act6Index] = input.value.trim().toLowerCase();
+    }
+    function act6Prev() { if(act6Index > 0) { act6Index--; updateAct6UI(); } }
+    function act6Next() { if(act6Index < 15) { act6Index++; updateAct6UI(); } }
+    function checkAct6() {
+        let correct = 0;
+        act6Words.forEach((w, i) => { if(act6Answers[i] === w) correct++; });
+        let score = Math.round((correct / 16) * 100);
+        document.getElementById('act6-input').disabled = true;
+        markCompleted(6, score);
+        showFeedback(6, score > 70, `You got ${correct} out of 16 correct! (${score}%)`);
+    }
+
+    // --- Activity 7 (Scrambled Image) ---
+    let act7Timer = 0, act7Interval = null, act7Started = false;
+    let act7Order = [...Array(16).keys()];
+    function initAct7() {
+        act7Order.sort(() => Math.random() - 0.5);
+        act7Started = false; act7Timer = 0;
+        document.getElementById('act7-timer').innerText = 0;
+        clearInterval(act7Interval);
+        renderAct7Grid();
+    }
+    function renderAct7Grid() {
+        let grid = document.getElementById('scrambled-grid');
+        grid.innerHTML = '';
+        act7Order.forEach((val, i) => {
+            let div = document.createElement('div');
+            div.className = 'puzzle-piece';
+            div.draggable = !completed[7];
+            let col = val % 4; let row = Math.floor(val / 4);
+            div.style.backgroundPosition = `${col * 33.33}% ${row * 33.33}%`;
+            div.dataset.index = i;
+            
+            div.ondragstart = (e) => {
+                if(!act7Started && !completed[7]) {
+                    act7Started = true;
+                    act7Interval = setInterval(() => { act7Timer++; document.getElementById('act7-timer').innerText = act7Timer; }, 1000);
+                }
+                e.dataTransfer.setData('text/plain', i);
+            };
+            div.ondragover = (e) => e.preventDefault();
+            div.ondrop = (e) => {
+                e.preventDefault();
+                if(completed[7]) return;
+                let fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                let toIdx = i;
+                let temp = act7Order[fromIdx];
+                act7Order[fromIdx] = act7Order[toIdx];
+                act7Order[toIdx] = temp;
+                renderAct7Grid();
+            };
+            grid.appendChild(div);
+        });
+    }
+    function checkAct7() {
+        clearInterval(act7Interval);
+        let correct = 0;
+        act7Order.forEach((val, i) => { if(val === i) correct++; });
+        let score = Math.round((correct / 16) * 100);
+        markCompleted(7, score);
+        showFeedback(7, score === 100, `Score: ${score}%. Puzzle ${score===100?'Completed!':'Incomplete.'} Time: ${act7Timer}s.`);
+    }
+
+    // --- Activity 8 ---
+    const act8Sentences = [
+        "The sun is very hot.",
+        "I see a big cloud.",
+        "The cold wind is blowing.",
+        "Look at the beautiful rainbow.",
+        "A storm has loud thunder."
+    ];
+    let act8Data = [];
+    function initAct8() {
+        let container = document.getElementById('act8-container');
+        act8Sentences.forEach((s, idx) => {
+            let words = s.replace('.', '').split(' ');
+            let shuffled = [...words].sort(() => Math.random() - 0.5);
+            act8Data.push({ target: s.replace('.', ''), current: [] });
+            
+            let html = `
+            <div class="p-4 border rounded bg-gray-50 dark:bg-gray-800" id="act8-row-${idx}">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-bold">Sentence ${idx+1}</span>
+                    <button onclick="speak('${s}')" class="btn btn-gray py-1 px-3 text-sm rounded-full"><i class="fas fa-volume-up"></i></button>
+                </div>
+                <div class="min-h-[40px] bg-white dark:bg-gray-900 border-b-2 border-primary mb-2 flex gap-2 p-2 items-center" id="act8-drop-${idx}">
+                    <!-- Dropped words -->
+                </div>
+                <div class="flex flex-wrap gap-2" id="act8-src-${idx}">
+                    ${shuffled.map(w => `<button class="px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded shadow border cursor-pointer hover:bg-blue-200" onclick="moveAct8Word(${idx}, this, '${w}')">${w}</button>`).join('')}
+                </div>
+            </div>`;
+            container.innerHTML += html;
+        });
+    }
+    function moveAct8Word(idx, btn, word) {
+        if(completed[8]) return;
+        btn.remove();
+        let drop = document.getElementById(`act8-drop-${idx}`);
+        let newBtn = document.createElement('button');
+        newBtn.className = "px-3 py-1 bg-green-100 dark:bg-green-900 rounded shadow border cursor-pointer";
+        newBtn.innerText = word;
+        newBtn.onclick = function() {
+            if(completed[8]) return;
+            this.remove();
+            let src = document.getElementById(`act8-src-${idx}`);
+            let retBtn = document.createElement('button');
+            retBtn.className = "px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded shadow border cursor-pointer hover:bg-blue-200";
+            retBtn.innerText = word;
+            retBtn.onclick = () => moveAct8Word(idx, retBtn, word);
+            src.appendChild(retBtn);
+            
+            // update state
+            act8Data[idx].current = Array.from(drop.children).filter(c => c !== newBtn).map(c => c.innerText);
+        };
+        drop.appendChild(newBtn);
+        act8Data[idx].current.push(word);
+    }
+    function checkAct8() {
+        let correct = 0;
+        act8Data.forEach((d, i) => {
+            if(d.current.join(' ') === d.target) correct++;
+        });
+        let score = Math.round((correct / 5) * 100);
+        markCompleted(8, score);
+        showFeedback(8, score > 70, `You got ${correct} out of 5 sentences correct! (${score}%)`);
+    }
+
+    // --- Activity 9 (Canvas) ---
+    const act9WordsList = ['find', 'may', 'come', 'who', 'over', 'new', 'take', 'sound', 'the', 'I', 'we'];
+    let canvas, ctx, isDrawing = false;
+    function initAct9() {
+        let container = document.getElementById('act9-words');
+        act9WordsList.forEach(w => {
+            let btn = document.createElement('button');
+            btn.className = "px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded text-sm hover:bg-gray-300";
+            btn.innerText = w;
+            btn.onclick = () => setCanvasWord(w);
+            container.appendChild(btn);
+        });
+        
+        canvas = document.getElementById('trace-canvas');
+        ctx = canvas.getContext('2d');
+        
+        const startDraw = (e) => { if(completed[9]) return; isDrawing = true; draw(e); };
+        const endDraw = () => { isDrawing = false; ctx.beginPath(); };
+        const draw = (e) => {
+            if(!isDrawing || completed[9]) return;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#fff' : '#000';
+            
+            let rect = canvas.getBoundingClientRect();
+            let x = (e.clientX || e.touches[0].clientX) - rect.left;
+            let y = (e.clientY || e.touches[0].clientY) - rect.top;
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        };
+
+        canvas.addEventListener('mousedown', startDraw); canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseout', endDraw);
+        canvas.addEventListener('touchstart', startDraw); canvas.addEventListener('touchend', endDraw);
+        canvas.addEventListener('touchmove', draw);
+        
+        setCanvasWord(act9WordsList[0]);
+    }
+    function setCanvasWord(word) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '120px "Nunito", sans-serif';
+        ctx.fillStyle = '#e2e8f0'; // light gray for tracing
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(word, canvas.width/2, canvas.height/2);
+    }
+    function clearCanvas() { setCanvasWord(act9WordsList[0]); }
+    function checkAct9() {
+        let sel = document.getElementById('act9-self-check').value;
+        if(!sel) { alert("Please answer if you traced the words."); return; }
+        document.getElementById('act9-self-check').disabled = true;
+        let score = sel === 'yes' ? 100 : 50;
+        markCompleted(9, score);
+        showFeedback(9, true, `Tracing complete! Score recorded.`);
+    }
+
+    // --- Activity 10 ---
+    const act10GridWords = [
+        'The', 'find', 'may', 'come', 'who',
+        'take', 'who', 'new', 'over', 'I',
+        'may', 'sound', 'I', 'we', 'find',
+        'new', 'come', 'The', 'take', 'come',
+        'find', 'we', 'over', 'sound', 'the'
+    ];
+    const act10ColorMap = {
+        'find':'red', 'may':'blue', 'come':'green', 'who':'yellow', 'over':'orange', 
+        'new':'purple', 'take':'pink', 'sound':'brown', 'the':'black', 'The':'black', 'I':'white', 'we':'gray'
+    };
+    const paletteColors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'brown', 'black', 'white', 'gray'];
+    let selectedColor = 'red';
+    let act10UserColors = new Array(25).fill('transparent');
+
+    function initAct10() {
+        let pContainer = document.getElementById('act10-palette');
+        paletteColors.forEach(c => {
+            let btn = document.createElement('button');
+            btn.className = `w-8 h-8 rounded-full border-2 border-gray-400 shadow-sm`;
+            btn.style.backgroundColor = c;
+            if(c === 'white') btn.classList.add('border-gray-800');
+            btn.onclick = () => {
+                selectedColor = c;
+                Array.from(pContainer.children).forEach(child => child.classList.remove('ring-4', 'ring-indigo-500'));
+                btn.classList.add('ring-4', 'ring-indigo-500');
+            };
+            if(c === 'red') btn.classList.add('ring-4', 'ring-indigo-500');
+            pContainer.appendChild(btn);
+        });
+
+        let gContainer = document.getElementById('act10-grid');
+        act10GridWords.forEach((w, i) => {
+            let div = document.createElement('div');
+            div.className = "w-12 h-12 md:w-16 md:h-16 bg-white dark:bg-gray-300 border flex items-center justify-center text-xs md:text-sm font-bold text-gray-800 cursor-pointer user-select-none";
+            div.innerText = w;
+            div.onclick = () => {
+                if(completed[10]) return;
+                div.style.backgroundColor = selectedColor;
+                if(selectedColor === 'black' || selectedColor === 'brown' || selectedColor === 'blue') div.style.color = 'white';
+                else div.style.color = 'black';
+                act10UserColors[i] = selectedColor;
+            };
+            gContainer.appendChild(div);
+        });
+    }
+    function checkAct10() {
+        let correct = 0;
+        act10GridWords.forEach((w, i) => {
+            let target = act10ColorMap[w];
+            if(act10UserColors[i] === target) correct++;
+        });
+        let score = Math.round((correct / 25) * 100);
+        markCompleted(10, score);
+        showFeedback(10, score > 70, `You got ${correct} out of 25 squares correct! (${score}%)`);
+    }
+
+    // --- Activity 11 ---
+    const act11SentencesList = [
+        "I find the new sound.", "We may come over.", "Who is that?", "I come to the new class.",
+        "We take the sound book.", "Who can find me?", "May I come in?", "Take the new pen.",
+        "We hear the sound.", "I jump over the line."
+    ];
+    function initAct11() {
+        let container = document.getElementById('act11-sentences');
+        act11SentencesList.forEach((s, i) => {
+            let div = document.createElement('div');
+            div.className = "p-3 bg-gray-50 dark:bg-gray-700 rounded border flex justify-between items-center";
+            div.innerHTML = `<span>${i+1}. ${s}</span> <button onclick="speak('${s}')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-volume-up"></i></button>`;
+            container.appendChild(div);
+        });
+    }
+    function checkAct11() {
+        let sel = document.getElementById('act11-self-check').value;
+        if(!sel) { alert("Please answer if you read the sentences."); return; }
+        document.getElementById('act11-self-check').disabled = true;
+        let score = sel === 'yes' ? 100 : 50;
+        markCompleted(11, score);
+        showFeedback(11, true, `Reading complete! Score recorded.`);
+    }
+
+    // --- Activity 12 (Spelling Bee) ---
+    const act12WordPool = [
+        { w: 'find', s: 'I can find the ball.' },
+        { w: 'may', s: 'May I go out?' },
+        { w: 'come', s: 'Come here, please.' },
+        { w: 'who', s: 'Who is that boy?' },
+        { w: 'over', s: 'Look over there.' },
+        { w: 'new', s: 'This is a new book.' },
+        { w: 'take', s: 'Take your jacket.' },
+        { w: 'sound', s: 'I hear a loud sound.' },
+        { w: 'the', s: 'The sky is blue.' },
+        { w: 'I', s: 'I am happy.' },
+        { w: 'we', s: 'We are friends.' },
+        { w: 'sun', s: 'The sun is very hot.' },
+        { w: 'rain', s: 'The rain is falling.' },
+        { w: 'cloud', s: 'Look at the white cloud.' },
+        { w: 'wind', s: 'The wind is strong.' },
+        { w: 'snow', s: 'The snow is cold.' },
+        { w: 'storm', s: 'A big storm is coming.' },
+        { w: 'fog', s: 'I cannot see in the fog.' },
+        { w: 'hot', s: 'Summer is very hot.' },
+        { w: 'cold', s: 'Winter is very cold.' },
+        { w: 'sunny', s: 'Today is a sunny day.' },
+        { w: 'rainy', s: 'I need an umbrella on a rainy day.' },
+        { w: 'windy', s: 'My kite flies on a windy day.' },
+        { w: 'snowy', s: 'We play outside on a snowy day.' },
+        { w: 'thunder', s: 'Thunder makes a loud noise.' },
+        { w: 'lightning', s: 'Lightning is bright.' },
+        { w: 'rainbow', s: 'The rainbow has many colors.' }
+    ];
+    let act12Words = [];
+    let act12Index = 0;
+    let act12Score = 0;
+    let act12Timer = 35;
+    let act12Interval = null;
+    let act12CorrectSpellings = [];
+
+    function startAct12() {
+        act12Words = [...act12WordPool].sort(() => Math.random() - 0.5).slice(0, 10); // pick 10 words
+        act12Index = 0; act12Score = 0; act12Timer = 35; act12CorrectSpellings = [];
+        document.getElementById('act12-score').innerText = 0;
+        document.getElementById('act12-counter').innerText = 1;
+        document.getElementById('act12-timer').innerText = 35;
+        document.getElementById('act12-input').value = "";
+        document.getElementById('act12-input').disabled = false;
+        document.getElementById('act12-btn-submit').disabled = false;
+        document.getElementById('act12-btn-play').disabled = false;
+        document.getElementById('act12-display').innerText = "";
+        document.getElementById('btn-start-12').classList.add('hidden');
+        document.getElementById('act12-results-area').classList.add('hidden');
+        document.getElementById('act12-word-list').innerHTML = '';
+        
+        act12Interval = setInterval(() => {
+            act12Timer--;
+            document.getElementById('act12-timer').innerText = act12Timer;
+            if(act12Timer <= 0) {
+                clearInterval(act12Interval);
+                finishAct12(true);
+            }
+        }, 1000);
+        
+        playAct12Word();
+    }
+    function playAct12Word() {
+        let current = act12Words[act12Index];
+        document.getElementById('act12-display').innerText = `${current.w} - ${current.s}`;
+        speak(current.s); 
+    }
+    function submitAct12Word() {
+        let input = document.getElementById('act12-input').value.trim().toLowerCase();
+        let target = act12Words[act12Index].w.toLowerCase();
+        act12CorrectSpellings.push({ word: act12Words[act12Index].w, correct: input === target });
+        
+        if(input === target) act12Score += 10;
+        else act12Score -= 10;
+        
+        document.getElementById('act12-score').innerText = act12Score;
+        document.getElementById('act12-input').value = "";
+        
+        act12Index++;
+        if(act12Index < 10 && act12Timer > 0) {
+            document.getElementById('act12-counter').innerText = act12Index + 1;
+            playAct12Word();
+        } else {
+            finishAct12(false);
+        }
+    }
+    function finishAct12(timeUp) {
+        clearInterval(act12Interval);
+        document.getElementById('act12-input').disabled = true;
+        document.getElementById('act12-btn-submit').disabled = true;
+        document.getElementById('act12-btn-play').disabled = true;
+        
+        let ul = document.getElementById('act12-word-list');
+        act12CorrectSpellings.forEach(item => {
+            ul.innerHTML += `<li class="${item.correct ? 'text-green-600' : 'text-red-600'}">${item.word} ${item.correct ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>'}</li>`;
+        });
+        document.getElementById('act12-results-area').classList.remove('hidden');
+        
+        // Map score to 0-100% (max possible is 100 points)
+        let finalPercent = Math.max(0, Math.min(100, act12Score)); 
+        markCompleted(12, finalPercent);
+        
+        showFeedback(12, true, `Bee finished! ${timeUp ? 'Time is up!' : 'All words typed.'} Score: ${finalPercent}%`);
+        document.getElementById('btn-check-12').classList.remove('hidden'); // Just to satisfy UI flow
+    }
+    function checkAct12() { /* handled by finish */ }
+
+    // --- Results & Chart ---
+    function showResults() {
+        let name = document.getElementById('studentName').value || "Student";
+        let date = document.getElementById('activityDate').value || new Date().toLocaleDateString();
+        
+        document.getElementById('res-name').innerText = name;
+        document.getElementById('res-date').innerText = date;
+        
+        let totalScore = 0;
+        let completedCount = Object.keys(completed).length;
+        let breakdownHtml = "";
+        let labels = [];
+        let dataScores = [];
+        let bgColors = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f472b6', '#38bdf8', '#fb923c', '#c084fc', '#4ade80', '#94a3b8', '#818cf8'];
+
+        for(let i=1; i<=12; i++) {
+            let sc = scores[i] !== undefined ? scores[i] : 0;
+            totalScore += sc;
+            labels.push(`Act ${i}`);
+            dataScores.push(sc);
+            breakdownHtml += `<div class="flex justify-between border-b border-gray-200 dark:border-gray-600 py-2">
+                <span>Activity ${i}:</span> <strong class="${sc>=70?'text-green-500':'text-red-500'}">${sc}%</strong>
+            </div>`;
+        }
+        
+        document.getElementById('res-breakdown').innerHTML = breakdownHtml;
+        
+        let overall = Math.round(totalScore / 12);
+        document.getElementById('res-score').innerText = `${overall}%`;
+
+        // Generate Recommendations
+        let recs = [];
+        if(overall < 50) {
+            recs = [
+                "Review the core weather vocabulary using flashcards.",
+                "Practice repeating the words out loud to improve pronunciation.",
+                "Redo the spelling bee focusing on short words first.",
+                "Take your time reading the Carlos text sentence by sentence.",
+                "Draw the weather items and label them in your notebook.",
+                "Listen to simple weather songs in English.",
+                "Practice the 'Memorama' game until you can match all in under 12 moves.",
+                "Ask your teacher for help with the scrambled sentences structure."
+            ];
+        } else if (overall < 80) {
+            recs = [
+                "Great effort! Review the specific words you misspelled in Activity 2.",
+                "Practice reading the dialogue aloud with a partner.",
+                "Try writing your own short paragraph about today's weather.",
+                "Review sentence structures (Subject + Verb + Adjective).",
+                "Try to complete the spelling bee with 100 points next time.",
+                "Pay attention to tricky spelling patterns like 'lightning'.",
+                "Color coding activities help memory, try making your own color key.",
+                "Watch short English cartoons focusing on weather."
+            ];
+        } else {
+            recs = [
+                "Excellent job! You have a strong grasp of Pre-A1 weather vocabulary.",
+                "Try teaching these words to a friend or family member.",
+                "Challenge yourself to write a 5-line weather report.",
+                "Move on to learning weather words for different seasons.",
+                "Try to beat your time in the Scrambled Image puzzle.",
+                "Practice listening to actual weather forecasts in simple English.",
+                "Keep practicing reading aloud to maintain fluency.",
+                "You are ready for the A1 level vocabulary list!"
+            ];
+        }
+        document.getElementById('res-recommendations').innerHTML = recs.map(r => `<li>${r}</li>`).join('');
+
+        // Chart
+        if(window.resultsChartInstance) window.resultsChartInstance.destroy();
+        const ctx = document.getElementById('resultsChart').getContext('2d');
+        window.resultsChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Score per Activity (%)',
+                    data: dataScores,
+                    backgroundColor: bgColors,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        nav(13);
+    }
+
+    // Initialization
+    window.onload = function() {
+        initAct1();
+        updateAct2UI();
+        initAct3();
+        initAct4();
+        initAct5();
+        updateAct6UI();
+        initAct7();
+        initAct8();
+        initAct9();
+        initAct10();
+        initAct11();
+        // act 12 inits on button press
+    };
+
+</script>
+</body>
+</html>
